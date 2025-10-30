@@ -28,11 +28,11 @@ public class FrameBufferWindow extends JPanel {
         window.setVisible(true);
     }
 
-    public FrameBufferWindow(String name, int width, int height, BufferedImage buffer, byte bitDepth, int colourType) {
+    public FrameBufferWindow(String name, int width, int height, BufferedImage buffer) {
         window = new JFrame(name);
         framebuffer = buffer;
-        this.bitDepth = bitDepth;
-        this.colourType = colourType;
+        this.bitDepth = 0;
+        this.colourType = 0;
         setPreferredSize(new Dimension(width, height));
 
         this.width = width;

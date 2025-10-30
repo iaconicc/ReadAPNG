@@ -21,6 +21,8 @@ public class PNG_READER {
     private byte interlace;
     private DataInputStream pixelStream;
 
+    private Color[] ColourIndex;
+
     public PNG_READER(String file) throws IOException {
         try {
             stream = new DataInputStream(new FileInputStream(file));
@@ -59,6 +61,11 @@ public class PNG_READER {
                     stream.readFully(IDATdata);
                     dataBytes.add(IDATdata);
                     stream.skipBytes(4);
+                } else if (chunk.getType().equals("PLTE") && colourType == 3) {
+                    byte[] PLTEdata = new byte[chunk.getLength()];
+                    stream.readFully(PLTEdata);
+                    stream.skipBytes(4);
+                    parsePLTEchunk(PLTEdata);
                 } else {
                     stream.skipBytes(chunk.getLength() + 4);
                 }
@@ -109,6 +116,20 @@ public class PNG_READER {
 
     public void closeStream() throws IOException {
         pixelStream.close();
+    }
+
+    private void parsePLTEchunk(byte[] plteData) {
+        if (plteData.length % 3 != 0) {
+            throw new IllegalArgumentException("The PLTE chunk's data doesn't align to 3 it may be damaged");
+        }
+
+        ColourIndex = new Color[plteData.length / 3];
+
+        for (int i = 0; i < plteData.length / 3; i++) {
+            ColourIndex[i] = new Color((int) plteData[i * 3] & 0xFF,
+                    (int) plteData[(i * 3) + 1] & 0xFF,
+                    (int) plteData[(i * 3) + 2] & 0xFF);
+        }
     }
 
     private static int paethPredictor(int a, int b, int c) {
@@ -198,7 +219,6 @@ public class PNG_READER {
 
     public BufferedImage decodeToBufferedImage() throws Exception {
         int bpp = getBytesPerPixel(); // channels * (bitDepth/8)
-        if (colourType == 3) throw new UnsupportedOperationException("Indexed PNG (PLTE) not supported");
         if (interlace != 0) throw new UnsupportedOperationException("Interlaced PNG not supported");
 
         BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -212,17 +232,17 @@ public class PNG_READER {
                 if (colourType == 2) { // RGB
                     for (int i = 0; i < row.length; i += 3) {
                         int r = row[i] & 0xFF;
-                        int g = row[i+1] & 0xFF;
-                        int b = row[i+2] & 0xFF;
+                        int g = row[i + 1] & 0xFF;
+                        int b = row[i + 2] & 0xFF;
                         int argb = (0xFF << 24) | (r << 16) | (g << 8) | b;
                         img.setRGB(x++, y, argb);
                     }
                 } else if (colourType == 6) { // RGBA
                     for (int i = 0; i < row.length; i += 4) {
                         int r = row[i] & 0xFF;
-                        int g = row[i+1] & 0xFF;
-                        int b = row[i+2] & 0xFF;
-                        int a = row[i+3] & 0xFF;
+                        int g = row[i + 1] & 0xFF;
+                        int b = row[i + 2] & 0xFF;
+                        int a = row[i + 3] & 0xFF;
                         int argb = (a << 24) | (r << 16) | (g << 8) | b;
                         img.setRGB(x++, y, argb);
                     }
@@ -232,6 +252,12 @@ public class PNG_READER {
                         int argb = (0xFF << 24) | (v << 16) | (v << 8) | v;
                         img.setRGB(x++, y, argb);
                     }
+                } else if (colourType == 3) {
+                    for (int i = 0; i < row.length; i++){
+                        int index = row[i] & 0xFF;
+                        Color colour= ColourIndex[index];
+                        img.setRGB(x++, y, colour.getRGB());
+                    }
                 } else {
                     throw new UnsupportedOperationException("Colour type " + colourType + " not implemented for decode");
                 }
@@ -240,17 +266,17 @@ public class PNG_READER {
                 if (colourType == 2) {
                     for (int i = 0; i < row.length; i += 6) {
                         int r = row[i] & 0xFF;      // MSB
-                        int g = row[i+2] & 0xFF;
-                        int b = row[i+4] & 0xFF;
+                        int g = row[i + 2] & 0xFF;
+                        int b = row[i + 4] & 0xFF;
                         int argb = (0xFF << 24) | (r << 16) | (g << 8) | b;
                         img.setRGB(x++, y, argb);
                     }
                 } else if (colourType == 6) {
                     for (int i = 0; i < row.length; i += 8) {
                         int r = row[i] & 0xFF;
-                        int g = row[i+2] & 0xFF;
-                        int b = row[i+4] & 0xFF;
-                        int a = row[i+6] & 0xFF;
+                        int g = row[i + 2] & 0xFF;
+                        int b = row[i + 4] & 0xFF;
+                        int a = row[i + 6] & 0xFF;
                         int argb = (a << 24) | (r << 16) | (g << 8) | b;
                         img.setRGB(x++, y, argb);
                     }
@@ -286,25 +312,6 @@ public class PNG_READER {
     public byte getColourType() {
         return colourType;
     }
-
-    /*private class PngChunk {
-        private PngChunkHeader chunkHeader = new PngChunkHeader();
-
-        private byte[] data;
-
-        private PngChunk() throws IOException {
-            data = new byte[chunkHeader.getLength()];
-            stream.readFully(data);
-            if(chunkHeader.getType().equals("IEND")) {
-                return;
-            }
-            stream.skip(4);
-        }
-
-        public PngChunkHeader getHeader() {
-            return chunkHeader;
-        }
-    }*/
 
     private class PngChunkHeader {
 

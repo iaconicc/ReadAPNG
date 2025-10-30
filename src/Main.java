@@ -32,16 +32,16 @@ public class Main {
 
         PNG_READER reader = new PNG_READER(file);
         Dimension windowDimensions = reader.getDimensions();
-        //BufferedImage img = reader.decodeToBufferedImage();
-        //FrameBufferWindow window = new FrameBufferWindow("Window", windowDimensions.width, windowDimensions.height, img);
+        BufferedImage img = reader.decodeToBufferedImage();
+        FrameBufferWindow window = new FrameBufferWindow("Window", windowDimensions.width, windowDimensions.height, img);
 
         //uncomment for animation but uncomment the FrameBufferWindow above and img
-        FrameBufferWindow window = new FrameBufferWindow("Window", windowDimensions.width, windowDimensions.height, reader.getBitDepth(), reader.getColourType());
+        /*FrameBufferWindow window = new FrameBufferWindow("Window", windowDimensions.width, windowDimensions.height, reader.getBitDepth(), reader.getColourType());
         for (int y = 0; y < windowDimensions.height; y++) {
             sleep(5);
             window.setLine(y, reader.getNextScanline());
             window.repaint();
-        }
+        }*/
 
         reader.closeStream();
     }
