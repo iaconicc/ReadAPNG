@@ -27,3 +27,9 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Test Images###
+test.png
+test2.png
+fakepngtest.png
+vintage.png
